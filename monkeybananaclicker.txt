@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monkeybanana Clicker</title>
+
+    <!-- MOBILE WEB APP OPTIMIZATION (REQUIRED FOR HOME SCREEN ICON AND FULLSCREEN) -->
+    <!-- 1. General Favicon (Browser Tab Icon) -->
+    <link rel="icon" type="image/png" href="path/to/your/monkeybanana_icon.png"> 
+    
+    <!-- 2. Apple Touch Icon (iOS Home Screen Icon) - Use a high-res square image (e.g., 180x180) -->
+    <link rel="apple-touch-icon" href="path/to/your/monkeybanana_icon_180.png"> 
+
+    <!-- 3. Full-screen Mode - Tells iOS to run the web page like a native app -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    
+    <!-- 4. Status Bar Style (Dark or Light Text) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"> 
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-bg: #2d1b2e;
+            --pixel-accent: #ffcc00;
+            --pixel-secondary: #b07e26;
+            --pixel-text: #fff1e8;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--pixel-bg);
+            color: var(--pixel-text);
+            overflow: hidden; /* Prevent scroll on mobile */
+            touch-action: manipulation; /* Improve touch response */
+        }
+
+        /* Retro Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a101a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--pixel-secondary); 
+            border: 2px solid #1a101a;
+        }
+
+        /* Utilities */
+        .pixel-border {
+            box-shadow: 
+                -4px 0 0 0 black,
+                4px 0 0 0 black,
+                0 -4px 0 0 black,
+                0 4px 0 0 black;
+            margin: 4px;
+        }
+
+        .pixel-btn {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        .pixel-btn:active {
+            transform: translateY(4px);
+        }
+
+        .shake {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0) rotate(-1deg); }
+            20%, 80% { transform: translate3d(2px, 0, 0) rotate(2deg); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0) rotate(-4deg); }
+            40%, 60% { transform: translate3d(4px, 0, 0) rotate(4deg); }
+        }
+
+        /* Floating Text Animation */
+        .floater {
+            position: absolute;
+            pointer-events: none;
+            animation: floatUp 1s ease-out forwards;
+            color: var(--pixel-accent);
+            text-shadow: 2px 2px 0 #000;
+            font-size: 1.2rem;
+            z-index: 50;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+
+        /* Particle Animation */
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: var(--pixel-accent);
+            pointer-events: none;
+            box-shadow: 2px 2px 0 #000;
+            animation: fall 1s linear forwards;
+        }
+
+        @keyframes fall {
+            0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) rotate(180deg); opacity: 0; }
+        }
+
+        .game-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (min-width: 768px) {
+            .game-container {
+                flex-direction: row;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    
+    <!-- LEFT PANEL: The Clicker -->
+    <div class="flex-1 flex flex-col items-center justify-center p-4 relative border-r-4 border-black bg-yellow-900/20">
+        
+        <!-- Score Display -->
+        <div class="text-center mb-8 z-10">
+            <h1 class="text-yellow-400 text-xl mb-4 text-shadow-md">MONKEYBANANA</h1>
+            <div class="pixel-border bg-black p-4 inline-block">
+                <span id="score" class="text-3xl text-white block mb-2">0</span>
+                <span class="text-xs text-gray-400 block">per second: <span id="ops">0</span></span>
+            </div>
+        </div>
+
+        <!-- The Main Button (SVG Pixel Art) -->
+        <div id="click-zone" class="relative cursor-pointer transition-transform hover:scale-105 active:scale-95">
+            <svg width="240" height="240" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                <!-- Shadow -->
+                <path d="M6 18h12v2H6z" fill="#000" opacity="0.3"/>
+                
+                <!-- Banana Body (Yellow) -->
+                <path d="M8 4h4v2H8zM6 6h2v4H6zM4 10h2v6H4zM6 16h2v4H6zM8 20h8v-2h2v-4h2V8h-2V6h-2V4h-2v2h2v2h2v4h-2v2H8v2z" fill="#FFCC00"/>
+                
+                <!-- Highlights (Light Yellow) -->
+                <path d="M8 6h2v2H8zM6 10h2v2H6z" fill="#FFEE80"/>
+                
+                <!-- Monkey Face (Brown) -->
+                <path d="M10 10h6v6h-6z" fill="#8B4513"/>
+                
+                <!-- Monkey Ears -->
+                <path d="M9 11h1v2H9zM16 11h1v2h-1z" fill="#8B4513"/>
+                
+                <!-- Eyes -->
+                <path d="M11 12h1v1h-1zM14 12h1v1h-1z" fill="#000"/>
+                
+                <!-- Smile -->
+                <path d="M11 14h4v1h-4z" fill="#000"/>
+                
+                <!-- Outline (Black) -->
+                <path d="M8 4V2h4v2h2v2h2v2h2v6h-2v4h-2v2H8v2H6v-4H4v-6h2V6h2zm10 4h-2V6h-2V4H8v2H6v4H4v6h2v4h2v2h8v-2h2v-4h2v-6h-2V8z" fill="#000" fill-rule="evenodd" clip-rule="evenodd"/>
+            </svg>
+        </div>
+
+        <!-- Visual Text for Click Power -->
+        <div class="mt-8 text-xs text-yellow-200">
+            Click Power: <span id="click-power">1</span>
+        </div>
+        
+        <!-- Save/Reset Controls -->
+        <div class="absolute bottom-4 left-4 flex gap-2">
+            <button onclick="saveGame()" class="text-[10px] bg-blue-800 p-2 pixel-border hover:bg-blue-700">SAVE</button>
+            <button onclick="resetGame()" class="text-[10px] bg-red-800 p-2 pixel-border hover:bg-red-700">RESET</button>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: The Shop -->
+    <div class="flex-1 bg-gray-900 p-4 overflow-y-auto border-l-4 border-black">
+        <h2 class="text-center text-yellow-400 mb-6 border-b-4 border-black pb-4">UPGRADES</h2>
+        
+        <div id="shop-container" class="space-y-4">
+            <!-- Items injected by JS -->
+        </div>
+    </div>
+
+</div>
+
+<!-- Audio Elements (Optional, kept silent by default but ready) -->
+<div id="particle-container"></div>
+
+<script>
+    // --- Game State ---
+    const defaultState = {
+        score: 0,
+        clickCount: 0,
+        upgrades: {
+            cursor: { 
+                id: 'cursor', 
+                name: 'Sharper Peel', 
+                baseCost: 15, 
+                count: 0, 
+                type: 'active', 
+                power: 1, 
+                desc: '+1 Click Power',
+                icon: '⚡' 
+            },
+            baby: { 
+                id: 'baby', 
+                name: 'Baby Monkey', 
+                baseCost: 50, 
+                count: 0, 
+                type: 'passive', 
+                power: 1, 
+                desc: '+1 MB/sec',
+                icon: '🐵' 
+            },
+            tree: { 
+                id: 'tree', 
+                name: 'Banana Tree', 
+                baseCost: 250, 
+                count: 0, 
+                type: 'passive', 
+                power: 5, 
+                desc: '+5 MB/sec',
+                icon: '🌴' 
+            },
+            farmer: { 
+                id: 'farmer', 
+                name: 'Gorilla Farmer', 
+                baseCost: 1000, 
+                count: 0, 
+                type: 'passive', 
+                power: 25, 
+                desc: '+25 MB/sec',
+                icon: '🦍' 
+            },
+            factory: { 
+                id: 'factory', 
+                name: 'Potassium Lab', 
+                baseCost: 5000, 
+                count: 0, 
+                type: 'passive', 
+                power: 100, 
+                desc: '+100 MB/sec',
+                icon: '🏭' 
+            },
+            shrine: { 
+                id: 'shrine', 
+                name: 'Golden Shrine', 
+                baseCost: 25000, 
+                count: 0, 
+                type: 'passive', 
+                power: 500, 
+                desc: '+500 MB/sec',
+                icon: '🏯' 
+            }
+        }
+    };
+
+    let game = JSON.parse(JSON.stringify(defaultState));
+    let calculatedOps = 0;
+    let clickValue = 1;
+
+    // --- Audio System (Web Audio API) ---
+    let audioCtx;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playChaChing() {
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return; 
+
+        const t = audioCtx.currentTime;
+
+        // 1. The "Cha" (Quick low-mid tone)
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+        osc1.type = 'square'; // 8-bit sound
+        osc1.frequency.setValueAtTime(600, t);
+        osc1.frequency.exponentialRampToValueAtTime(1200, t + 0.1);
+        
+        gain1.gain.setValueAtTime(0.05, t);
+        gain1.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+        
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+        osc1.start(t);
+        osc1.stop(t + 0.1);
+
+        // 2. The "Ching" (Higher ringing tone)
+        const osc2 = audioCtx.createOscillator();
+        const gain2 = audioCtx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(1200, t + 0.08); 
+        osc2.frequency.setValueAtTime(1800, t + 0.12); // Small jump up
+        
+        gain2.gain.setValueAtTime(0.05, t + 0.08);
+        gain2.gain.linearRampToValueAtTime(0.001, t + 0.5); // Long decay
+        
+        osc2.connect(gain2);
+        gain2.connect(audioCtx.destination);
+        osc2.start(t + 0.08);
+        osc2.stop(t + 0.5);
+    }
+
+    // NEW FUNCTION: Click Sound
+    function playClickSound() {
+        if (!audioCtx) initAudio();
+        if (!audioCtx) return;
+
+        const t = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        // Use triangle for a "bouncier" or "fruitier" sound compared to the harsh square wave
+        osc.type = 'triangle'; 
+        
+        // Quick slide up pitch (Bloop!)
+        osc.frequency.setValueAtTime(300, t);
+        osc.frequency.linearRampToValueAtTime(600, t + 0.1);
+        
+        // Quick envelope
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.linearRampToValueAtTime(0.001, t + 0.1);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + 0.1);
+    }
+
+    // --- DOM Elements ---
+    const scoreEl = document.getElementById('score');
+    const opsEl = document.getElementById('ops');
+    const clickPowerEl = document.getElementById('click-power');
+    const clickZone = document.getElementById('click-zone');
+    const shopContainer = document.getElementById('shop-container');
+
+    // --- Core Logic ---
+
+    function calculateStats() {
+        // Calculate Passive Income (OPS)
+        let ops = 0;
+        Object.values(game.upgrades).forEach(u => {
+            if (u.type === 'passive') {
+                ops += u.count * u.power;
+            }
+        });
+        calculatedOps = ops;
+
+        // Calculate Click Power
+        let power = 1;
+        // Base click power increases with cursor upgrades
+        power += game.upgrades.cursor.count * game.upgrades.cursor.power;
+        clickValue = power;
+    }
+
+    function updateUI() {
+        scoreEl.innerText = Math.floor(game.score).toLocaleString();
+        opsEl.innerText = calculatedOps.toLocaleString();
+        clickPowerEl.innerText = clickValue.toLocaleString();
+
+        // Update Shop Buttons
+        Object.values(game.upgrades).forEach(item => {
+            const cost = Math.floor(item.baseCost * Math.pow(1.15, item.count));
+            const btn = document.getElementById(`btn-${item.id}`);
+            const costEl = document.getElementById(`cost-${item.id}`);
+            const countEl = document.getElementById(`count-${item.id}`);
+            
+            if (costEl) costEl.innerText = cost.toLocaleString();
+            if (countEl) countEl.innerText = item.count;
+
+            // Visual feedback for affordability
+            if (btn) {
+                if (game.score >= cost) {
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    btn.classList.add('hover:bg-gray-700');
+                } else {
+                    btn.classList.add('opacity-50', 'cursor-not-allowed');
+                    btn.classList.remove('hover:bg-gray-700');
+                }
+            }
+        });
+    }
+
+    function spawnFloater(x, y, text) {
+        const el = document.createElement('div');
+        el.className = 'floater';
+        el.innerText = text;
+        el.style.left = `${x}px`;
+        el.style.top = `${y}px`;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function spawnParticles(x, y) {
+        for(let i=0; i<5; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = `${x}px`;
+            p.style.top = `${y}px`;
+            
+            // Random direction
+            const tx = (Math.random() - 0.5) * 100;
+            const ty = Math.random() * 100 + 50; // always fall down
+            
+            p.style.setProperty('--tx', `${tx}px`);
+            p.style.setProperty('--ty', `${ty}px`);
+            
+            document.body.appendChild(p);
+            setTimeout(() => p.remove(), 1000);
+        }
+    }
+
+    function handleClick(e) {
+        // Init audio context on first user interaction
+        initAudio();
+
+        // Prevent default touch behavior (zooming)
+        if(e.type === 'touchstart') e.preventDefault();
+
+        // Play the click sound!
+        playClickSound();
+
+        game.score += clickValue;
+        game.clickCount++;
+        
+        // Animation Juice
+        clickZone.classList.remove('shake');
+        void clickZone.offsetWidth; // trigger reflow
+        clickZone.classList.add('shake');
+
+        // Get click position (handle mouse and touch)
+        let clientX = e.clientX;
+        let clientY = e.clientY;
+        
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        }
+
+        spawnFloater(clientX, clientY, `+${clickValue}`);
+        spawnParticles(clientX, clientY);
+        updateUI();
+    }
+
+    function buyItem(id) {
+        const item = game.upgrades[id];
+        const cost = Math.floor(item.baseCost * Math.pow(1.15, item.count));
+
+        if (game.score >= cost) {
+            game.score -= cost;
+            item.count++;
+            calculateStats();
+            updateUI();
+            
+            // Play Sound
+            playChaChing();
+            
+            // Save immediately on purchase
+            saveGame();
+        }
+    }
+
+    // --- Init Shop ---
+    function initShop() {
+        shopContainer.innerHTML = '';
+        Object.values(game.upgrades).forEach(item => {
+            const cost = Math.floor(item.baseCost * Math.pow(1.15, item.count));
+            
+            const div = document.createElement('div');
+            div.className = 'bg-gray-800 p-4 pixel-border flex items-center justify-between cursor-pointer transition-colors duration-200';
+            div.id = `btn-${item.id}`;
+            div.onclick = () => buyItem(item.id);
+
+            div.innerHTML = `
+                <div class="flex items-center gap-4">
+                    <div class="text-3xl">${item.icon}</div>
+                    <div>
+                        <div class="text-yellow-400 text-sm mb-1">${item.name}</div>
+                        <div class="text-[10px] text-gray-400">${item.desc}</div>
+                        <div class="text-[10px] mt-1 text-green-400">Cost: <span id="cost-${item.id}">${cost}</span></div>
+                    </div>
+                </div>
+                <div class="text-2xl font-bold text-gray-600" id="count-${item.id}">${item.count}</div>
+            `;
+            shopContainer.appendChild(div);
+        });
+    }
+
+    // --- Loop ---
+    setInterval(() => {
+        if (calculatedOps > 0) {
+            game.score += calculatedOps / 10; // 10 ticks per second
+            updateUI();
+        }
+    }, 100);
+
+    // Auto-save every 30 seconds
+    setInterval(() => {
+        saveGame();
+    }, 30000);
+
+    // --- Storage ---
+    function saveGame() {
+        localStorage.setItem('monkeyBananaSave', JSON.stringify(game));
+    }
+
+    function loadGame() {
+        const saved = localStorage.getItem('monkeyBananaSave');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Merge save with default state to handle game updates (new items)
+            game = { ...defaultState, ...parsed, upgrades: { ...defaultState.upgrades, ...parsed.upgrades } };
+        }
+        calculateStats();
+        initShop();
+        updateUI();
+    }
+
+    function resetGame() {
+        if(confirm("Are you sure you want to reset all progress?")) {
+            game = JSON.parse(JSON.stringify(defaultState));
+            saveGame();
+            calculateStats();
+            initShop();
+            updateUI();
+        }
+    }
+
+    // --- Events ---
+    clickZone.addEventListener('mousedown', handleClick);
+    // Touch event handled carefully to prevent double firing with mousedown
+    clickZone.addEventListener('touchstart', (e) => {
+        handleClick(e);
+        e.stopPropagation(); // Stop propagation to prevent mouse emulation
+    }, {passive: false});
+
+    // Start
+    loadGame();
+
+</script>
+</body>
+</html>
+
